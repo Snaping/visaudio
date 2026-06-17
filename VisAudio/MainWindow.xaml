@@ -1,0 +1,326 @@
+﻿<Window x:Class="VisAudio.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ctrl="clr-namespace:VisAudio.Controls"
+        xmlns:vm="clr-namespace:VisAudio.ViewModels"
+        Title="VisAudio - Music Editor" 
+        Width="1280" Height="820"
+        MinWidth="960" MinHeight="680"
+        Background="{StaticResource AppBackground}"
+        WindowStartupLocation="CenterScreen"
+        AllowDrop="True"
+        Drop="Window_Drop" DragOver="Window_DragOver">
+
+    <Window.DataContext>
+        <vm:MainViewModel/>
+    </Window.DataContext>
+
+    <Window.Resources>
+    </Window.Resources>
+
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{StaticResource PanelBackground}" 
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
+                Padding="16,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🎵 VisAudio" FontSize="18" FontWeight="Bold" 
+                               Foreground="{StaticResource AccentBrush}" Margin="0,0,20,0"/>
+                    <TextBlock Text="{Binding CurrentFileName}" FontSize="13" 
+                               Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Style="{StaticResource IconButton}" Content="📁 Add Files" 
+                            Command="{Binding AddFilesCommand}" Margin="0,0,4,0"/>
+                    <Button Style="{StaticResource IconButton}" Content="💾 Save List" 
+                            Command="{Binding SavePlaylistCommand}" Margin="0,0,4,0"/>
+                    <Button Style="{StaticResource IconButton}" Content="📂 Load List" 
+                            Command="{Binding LoadPlaylistCommand}" Margin="0,0,4,0"/>
+                    <Button Style="{StaticResource AccentButton}" Content="📦 Export MP3" 
+                            Command="{Binding ExportCommand}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="8,8,8,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220" MinWidth="180"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="280" MinWidth="240"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="{StaticResource PanelBackground}" 
+                    CornerRadius="8" Padding="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="Playlist" FontWeight="SemiBold" 
+                               Foreground="{StaticResource TextBrush}" Margin="4,0,0,8" FontSize="13"/>
+
+                    <ListBox Grid.Row="1" 
+                             ItemsSource="{Binding PlaylistItems}" 
+                             SelectedIndex="{Binding SelectedPlaylistIndex}"
+                             Background="Transparent" BorderThickness="0"
+                             Foreground="{StaticResource TextBrush}"
+                             FontSize="12" AllowDrop="True"
+                             PreviewMouseLeftButtonDown="Playlist_PreviewMouseLeftButtonDown"
+                             PreviewMouseMove="Playlist_PreviewMouseMove"
+                             Drop="Playlist_Drop" DragOver="Playlist_DragOver"
+                             MouseDoubleClick="Playlist_MouseDoubleClick">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="2,0">
+                                    <TextBlock Text="🎵" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"
+                                               MaxWidth="140" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem" BasedOn="{StaticResource PlaylistItemStyle}"/>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+                        <Button Style="{StaticResource IconButton}" Content="➕" ToolTip="Add Files"
+                                Command="{Binding AddFilesCommand}" FontSize="12"/>
+                        <Button Style="{StaticResource IconButton}" Content="➖" ToolTip="Remove"
+                                Command="{Binding RemoveFileCommand}" FontSize="12"/>
+                        <Button Style="{StaticResource IconButton}" Content="⬆" ToolTip="Move Up"
+                                Command="{Binding MoveUpCommand}" FontSize="12"/>
+                        <Button Style="{StaticResource IconButton}" Content="⬇" ToolTip="Move Down"
+                                Command="{Binding MoveDownCommand}" FontSize="12"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" 
+                          Background="Transparent"/>
+
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="120"/>
+                    <RowDefinition Height="5"/>
+                    <RowDefinition Height="150"/>
+                    <RowDefinition Height="5"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
+                    <TextBlock Text="Waveform" FontWeight="SemiBold" 
+                               Foreground="{StaticResource TextBrush}" FontSize="13" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <Border Grid.Row="1" Background="{StaticResource CardBackground}" CornerRadius="8">
+                    <ctrl:WaveformControl x:Name="WaveformDisplay"
+                        WaveformData="{Binding WaveformData}"
+                        PlayPosition="{Binding PlayPosition}"
+                        LoopStartPosition="{Binding LoopStartPosition}"
+                        LoopEndPosition="{Binding LoopEndPosition}"
+                        MouseLeftButtonDown="WaveformDisplay_MouseLeftButtonDown"/>
+                </Border>
+
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,2,0,2">
+                    <TextBlock Text="Spectrum (FFT)" FontWeight="SemiBold" 
+                               Foreground="{StaticResource TextBrush}" FontSize="13"/>
+                </StackPanel>
+
+                <Border Grid.Row="3" Background="{StaticResource CardBackground}" CornerRadius="8">
+                    <ctrl:SpectrumControl x:Name="SpectrumDisplay"
+                        FftData="{Binding FftData}" BarCount="64"/>
+                </Border>
+
+                <Grid Grid.Row="5" Margin="0,4,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="200"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Background="{StaticResource PanelBackground}" 
+                            CornerRadius="8" Padding="16,12" Margin="0,0,4,0">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Lyrics" FontWeight="SemiBold" 
+                                       Foreground="{StaticResource AccentBrush}" FontSize="11" Margin="0,0,0,6"/>
+                            <TextBlock Text="{Binding CurrentLyricText}" FontSize="16" 
+                                       Foreground="{StaticResource TextBrush}" 
+                                       TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <TextBlock Text="{Binding NextLyricText}" FontSize="13" 
+                                       Foreground="{StaticResource TextSecondary}" 
+                                       TextAlignment="Center" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1" Background="{StaticResource PanelBackground}" 
+                            CornerRadius="8" Padding="12,8">
+                        <StackPanel>
+                            <TextBlock Text="A-B Loop" FontWeight="SemiBold" 
+                                       Foreground="{StaticResource AccentBrush}" FontSize="11" Margin="0,0,0,6"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <Button Style="{StaticResource IconButton}" Content="Set A" 
+                                        Command="{Binding SetLoopACommand}" FontSize="11" Padding="6,2"/>
+                                <Button Style="{StaticResource IconButton}" Content="Set B" 
+                                        Command="{Binding SetLoopBCommand}" FontSize="11" Padding="6,2" Margin="4,0"/>
+                                <Button Style="{StaticResource IconButton}" Content="Clear" 
+                                        Command="{Binding ClearLoopCommand}" FontSize="11" Padding="6,2"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,4,0,0">
+                                <TextBlock FontSize="10" Foreground="{StaticResource TextSecondary}">
+                                    <Run Text="A: "/><Run Text="{Binding LoopA, StringFormat='mm\\:ss\\.ff', TargetNullValue='--:--'}"/>
+                                </TextBlock>
+                                <TextBlock FontSize="10" Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0">
+                                    <Run Text="B: "/><Run Text="{Binding LoopB, StringFormat='mm\\:ss\\.ff', TargetNullValue='--:--'}"/>
+                                </TextBlock>
+                            </StackPanel>
+                            <Button Style="{StaticResource IconButton}" Content="📝 Load LRC" 
+                                    Command="{Binding LoadLrcCommand}" FontSize="10" 
+                                    Margin="0,8,0,0" Padding="6,2" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch" Background="Transparent"/>
+
+            <ScrollViewer Grid.Column="4" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <Border Background="{StaticResource PanelBackground}" CornerRadius="8" Padding="10,8" Margin="0,0,0,4">
+                        <StackPanel>
+                            <TextBlock Text="Instrument Mixer" FontWeight="SemiBold" 
+                                       Foreground="{StaticResource AccentBrush}" FontSize="13" Margin="0,0,0,8"/>
+                            <ItemsControl ItemsSource="{Binding InstrumentChannels}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="14" 
+                                                       VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="11" 
+                                                       Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"/>
+                                            <CheckBox Grid.Column="2" IsChecked="{Binding IsEnabled}" 
+                                                      Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource PanelBackground}" CornerRadius="8" Padding="10,8">
+                        <StackPanel>
+                            <TextBlock Text="10-Band Equalizer" FontWeight="SemiBold" 
+                                       Foreground="{StaticResource AccentBrush}" FontSize="13" Margin="0,0,0,8"/>
+                            <ItemsControl x:Name="EqualizerPanel" ItemsSource="{Binding EqualizerBands}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Width="52" Margin="0,0,2,0">
+                                            <Slider Style="{StaticResource EqualizerSlider}" 
+                                                    Value="{Binding GainDb}" 
+                                                    ValueChanged="EqSlider_ValueChanged"
+                                                    Height="100" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding Label}" FontSize="9" 
+                                                       Foreground="{StaticResource TextSecondary}" 
+                                                       HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                            <TextBlock Text="dB: -12 ~ +12" FontSize="9" 
+                                       Foreground="{StaticResource TextSecondary}" 
+                                       HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <Border Grid.Row="2" Background="{StaticResource PanelBackground}" 
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
+                Padding="16,10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" Text="{Binding CurrentTimeString}" 
+                               FontSize="13" Foreground="{StaticResource TextBrush}" 
+                               VerticalAlignment="Center" Margin="0,0,10,0"
+                               FontFamily="Consolas"/>
+
+                    <Slider x:Name="ProgressSlider" Grid.Column="1" 
+                            Minimum="0" Maximum="1" 
+                            Value="{Binding PlayPosition, Mode=OneWay}"
+                            VerticalAlignment="Center"
+                            PreviewMouseLeftButtonDown="ProgressSlider_PreviewMouseLeftButtonDown"
+                            PreviewMouseLeftButtonUp="ProgressSlider_PreviewMouseLeftButtonUp"
+                            ValueChanged="ProgressSlider_ValueChanged"/>
+
+                    <TextBlock Grid.Column="2" Text="{Binding TotalDurationString}" 
+                               FontSize="13" Foreground="{StaticResource TextSecondary}" 
+                               VerticalAlignment="Center" Margin="10,0,0,0"
+                               FontFamily="Consolas"/>
+                </Grid>
+
+                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Style="{StaticResource IconButton}" Content="⏮" FontSize="20" 
+                            Command="{Binding PreviousCommand}" ToolTip="Previous"/>
+                    <Button Style="{StaticResource IconButton}" Content="⏪" FontSize="16" 
+                            Click="Rewind_Click" ToolTip="Rewind 5s"/>
+                    <Button Style="{StaticResource AccentButton}" FontSize="22" 
+                            Content="▶" Click="PlayPause_Click" ToolTip="Play/Pause" MinWidth="48"/>
+                    <Button Style="{StaticResource IconButton}" Content="⏹" FontSize="18" 
+                            Command="{Binding StopCommand}" ToolTip="Stop" Margin="2,0"/>
+                    <Button Style="{StaticResource IconButton}" Content="⏩" FontSize="16" 
+                            Click="Forward_Click" ToolTip="Forward 5s"/>
+                    <Button Style="{StaticResource IconButton}" Content="⏭" FontSize="20" 
+                            Command="{Binding NextCommand}" ToolTip="Next"/>
+
+                    <Separator Margin="12,4" Background="{StaticResource BorderBrush}"/>
+
+                    <TextBlock Text="🔊" FontSize="16" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <Slider x:Name="VolumeSlider" Width="100" Minimum="0" Maximum="1" 
+                            Value="{Binding Volume, Mode=TwoWay}" VerticalAlignment="Center"
+                            ValueChanged="VolumeSlider_ValueChanged"/>
+                    <Button Style="{StaticResource IconButton}" 
+                            Content="🔊" Click="Mute_Click" ToolTip="Mute/Unmute" FontSize="14" Margin="4,0,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
