@@ -52,13 +52,15 @@ public class InstrumentSeparator : ISampleProvider
 
         if (enabledCount == 0)
         {
-            Array.Clear(buffer, offset, samplesRead);
+            for (int i = 0; i < samplesRead; i++)
+                buffer[offset + i] = 0f;
             return samplesRead;
         }
 
         if (enabledCount == Channels.Count)
         {
-            Array.Copy(_tempBuffer, 0, buffer, offset, samplesRead);
+            for (int i = 0; i < samplesRead; i++)
+                buffer[offset + i] = _tempBuffer[i];
             return samplesRead;
         }
 
