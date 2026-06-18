@@ -72,11 +72,12 @@ public class FftAnalyzer : ISampleProvider, INotifyPropertyChanged
     {
         FastFourierTransform.FFT(true, (int)Math.Log2(FftSize), _fftBuffer);
 
+        float normalization = 2f / FftSize;
         for (int i = 0; i < FftResults.Length; i++)
         {
             double real = _fftBuffer[i].X;
             double imag = _fftBuffer[i].Y;
-            FftResults[i] = (float)Math.Sqrt(real * real + imag * imag);
+            FftResults[i] = (float)Math.Sqrt(real * real + imag * imag) * normalization;
         }
 
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(FftResults)));

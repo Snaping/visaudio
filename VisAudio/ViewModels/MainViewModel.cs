@@ -60,6 +60,11 @@ public class MainViewModel : INotifyPropertyChanged
     private TimeSpan? _loopB;
     private float[] _waveformData = [];
     private float[] _fftData = [];
+    private float[]? _waveformBufferA;
+    private float[]? _waveformBufferB;
+    private float[]? _fftBufferA;
+    private float[]? _fftBufferB;
+    private bool _vizBufferToggle;
     private List<LrcLine> _lrcLines = [];
     private string _currentLyricText = string.Empty;
     private string _nextLyricText = string.Empty;
@@ -485,8 +490,34 @@ public class MainViewModel : INotifyPropertyChanged
     private void UpdateVisualization()
     {
         if (_fftAnalyzer is null) return;
-        WaveformData = _fftAnalyzer.WaveformData;
-        FftData = _fftAnalyzer.FftResults;
+
+        var srcWave = _fftAnalyzer.WaveformData;
+        var srcFft = _fftAnalyzer.FftResults;
+
+        if (_waveformBufferA is null || _waveformBufferA.Length != srcWave.Length)
+        {
+            _waveformBufferA = new float[srcWave.Length];
+            _waveformBufferB = new float[srcWave.Length];
+            _fftBufferA = new float[srcFft.Length];
+            _fftBufferB = new float[srcFft.Length];
+        }
+
+        _vizBufferToggle = !_vizBufferToggle;
+
+        if (_vizBufferToggle)
+        {
+            Array.Copy(srcWave, _waveformBufferA!, srcWave.Length);
+            Array.Copy(srcFft, _fftBufferA!, srcFft.Length);
+            WaveformData = _waveformBufferA!;
+            FftData = _fftBufferA!;
+        }
+        else
+        {
+            Array.Copy(srcWave, _waveformBufferB!, srcWave.Length);
+            Array.Copy(srcFft, _fftBufferB!, srcFft.Length);
+            WaveformData = _waveformBufferB!;
+            FftData = _fftBufferB!;
+        }
     }
 
     private void SubscribeToFftEvents()

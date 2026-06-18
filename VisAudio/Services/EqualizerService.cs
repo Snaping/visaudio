@@ -21,16 +21,16 @@ public class EqualizerService : ISampleProvider
 
         Bands =
         [
-            new EqualizerBand("31Hz", 31),
-            new EqualizerBand("62Hz", 62),
-            new EqualizerBand("125Hz", 125),
-            new EqualizerBand("250Hz", 250),
-            new EqualizerBand("500Hz", 500),
-            new EqualizerBand("1kHz", 1000),
-            new EqualizerBand("2kHz", 2000),
-            new EqualizerBand("4kHz", 4000),
-            new EqualizerBand("8kHz", 8000),
-            new EqualizerBand("16kHz", 16000)
+            new EqualizerBand("31Hz", "31", 31),
+            new EqualizerBand("62Hz", "62", 62),
+            new EqualizerBand("125Hz", "125", 125),
+            new EqualizerBand("250Hz", "250", 250),
+            new EqualizerBand("500Hz", "500", 500),
+            new EqualizerBand("1kHz", "1K", 1000),
+            new EqualizerBand("2kHz", "2K", 2000),
+            new EqualizerBand("4kHz", "4K", 4000),
+            new EqualizerBand("8kHz", "8K", 8000),
+            new EqualizerBand("16kHz", "16K", 16000)
         ];
 
         _filters = new BiQuadFilter[Bands.Count];

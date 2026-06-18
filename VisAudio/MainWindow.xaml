@@ -236,14 +236,14 @@
                             <ItemsControl x:Name="EqualizerPanel" ItemsSource="{Binding EqualizerBands}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <StackPanel Width="52" Margin="0,0,2,0">
+                                        <StackPanel Width="22" Margin="0,0,2,0">
                                             <Slider Style="{StaticResource EqualizerSlider}" 
                                                     Value="{Binding GainDb}" 
                                                     ValueChanged="EqSlider_ValueChanged"
-                                                    Height="100" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="{Binding Label}" FontSize="9" 
+                                                    Height="100" HorizontalAlignment="Center" Width="18"/>
+                                            <TextBlock Text="{Binding ShortLabel}" FontSize="8" 
                                                        Foreground="{StaticResource TextSecondary}" 
-                                                       HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                       HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

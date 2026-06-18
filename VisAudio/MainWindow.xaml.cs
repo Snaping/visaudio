@@ -15,6 +15,7 @@ public partial class MainWindow : Window
 {
     private MainViewModel ViewModel => (MainViewModel)DataContext;
     private bool _isSeeking;
+    private const string PlaylistDragFormat = "PlaylistItemIndex";
     private Point _dragStartPoint;
     private bool _isDragging;
 
@@ -176,19 +177,19 @@ public partial class MainWindow : Window
 
     private void Playlist_PreviewMouseMove(object sender, MouseEventArgs e)
     {
-        if (e.LeftButton == MouseButtonState.Pressed && !_isDragging)
+        if (e.LeftButton == MouseButtonState.Pressed && !_isDragging && sender is ListBox listBox)
         {
             var pos = e.GetPosition(null);
             var diff = _dragStartPoint - pos;
             if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
                 Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
             {
-                _isDragging = true;
-                if (sender is ListBox listBox && listBox.SelectedItem != null)
+                var item = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
+                if (item != null && listBox.ItemContainerGenerator.IndexFromContainer(item) is int index && index >= 0)
                 {
-                    var item = (PlaylistItem)listBox.SelectedItem;
-                    var data = new DataObject(DataFormats.FileDrop, new[] { item.FilePath });
-                    DragDrop.DoDragDrop(listBox, data, DragDropEffects.Copy);
+                    _isDragging = true;
+                    var data = new DataObject(PlaylistDragFormat, index);
+                    DragDrop.DoDragDrop(listBox, data, DragDropEffects.Move);
                     _isDragging = false;
                 }
             }
@@ -197,23 +198,9 @@ public partial class MainWindow : Window
 
     private void Playlist_Drop(object sender, DragEventArgs e)
     {
-        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        if (e.Data.GetDataPresent(PlaylistDragFormat))
         {
-            var files = (string[]?)e.Data.GetData(DataFormats.FileDrop);
-            if (files != null)
-            {
-                foreach (var file in files)
-                {
-                    var ext = System.IO.Path.GetExtension(file).ToLowerInvariant();
-                    if (ext == ".mp3" || ext == ".wav" || ext == ".flac")
-                        ViewModel.PlaylistItems.Add(new PlaylistItem(file));
-                }
-            }
-        }
-
-        if (e.Data.GetDataPresent(typeof(int)))
-        {
-            var sourceIndex = (int)e.Data.GetData(typeof(int));
+            var sourceIndex = (int)e.Data.GetData(PlaylistDragFormat)!;
             var targetItem = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
             if (targetItem != null && sender is ListBox listBox)
             {
@@ -227,12 +214,40 @@ public partial class MainWindow : Window
                     ViewModel.SelectedPlaylistIndex = insertIndex;
                 }
             }
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            var files = (string[]?)e.Data.GetData(DataFormats.FileDrop);
+            if (files != null)
+            {
+                foreach (var file in files)
+                {
+                    var ext = System.IO.Path.GetExtension(file).ToLowerInvariant();
+                    if (ext == ".mp3" || ext == ".wav" || ext == ".flac")
+                        ViewModel.PlaylistItems.Add(new PlaylistItem(file));
+                }
+            }
+            e.Handled = true;
         }
     }
 
     private void Playlist_DragOver(object sender, DragEventArgs e)
     {
-        e.Effects = DragDropEffects.Copy;
+        if (e.Data.GetDataPresent(PlaylistDragFormat))
+        {
+            e.Effects = DragDropEffects.Move;
+        }
+        else if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            e.Effects = DragDropEffects.Copy;
+        }
+        else
+        {
+            e.Effects = DragDropEffects.None;
+        }
         e.Handled = true;
     }
 
