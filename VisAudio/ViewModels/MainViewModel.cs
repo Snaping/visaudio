@@ -304,106 +304,159 @@ public class MainViewModel : INotifyPropertyChanged
 
     public void LoadAndPlay(string path)
     {
-        Stop();
-
-        var extension = Path.GetExtension(path).ToLowerInvariant();
-        ISampleProvider reader;
-
-        if (extension == ".flac")
+        try
         {
-            var mfr = new MediaFoundationReader(path);
-            reader = new WaveToSampleProvider(mfr);
-            _readerDisposable = mfr;
+            Stop();
+
+            var extension = Path.GetExtension(path).ToLowerInvariant();
+            ISampleProvider reader;
+
+            if (extension == ".flac")
+            {
+                var mfr = new MediaFoundationReader(path);
+                reader = new WaveToSampleProvider(mfr);
+                _readerDisposable = mfr;
+            }
+            else
+            {
+                var afe = new AudioFileReader(path);
+                reader = afe;
+                _readerDisposable = afe;
+            }
+
+            _audioReader = reader;
+            _currentFilePath = path;
+            CurrentFileName = Path.GetFileName(path);
+            TotalDuration = GetReaderDuration();
+
+            _instrumentSeparator = new InstrumentSeparator(reader);
+            _equalizerService = new EqualizerService(_instrumentSeparator);
+            _fftAnalyzer = new FftAnalyzer(_equalizerService);
+
+            _outputDevice = new WaveOutEvent { DesiredLatency = 200, NumberOfBuffers = 4 };
+            _outputDevice.Volume = _volume;
+            _outputDevice.Init(_fftAnalyzer);
+            _outputDevice.PlaybackStopped += OnPlaybackStopped;
+
+            SubscribeToFftEvents();
+            OnPropertyChanged(nameof(InstrumentChannels));
+            OnPropertyChanged(nameof(EqualizerBands));
+            ExportCommand.RaiseCanExecuteChanged();
+
+            _outputDevice.Play();
+            PlaybackState = PlaybackState.Playing;
+            _positionTimer.Start();
+            _visualizationTimer.Start();
         }
-        else
+        catch (Exception ex)
         {
-            var afe = new AudioFileReader(path);
-            reader = afe;
-            _readerDisposable = afe;
+            MessageBox.Show($"加载或播放失败：{ex.Message}\n\n{ex.StackTrace}",
+                "播放错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            Stop();
         }
-
-        _audioReader = reader;
-        _currentFilePath = path;
-        CurrentFileName = Path.GetFileName(path);
-        TotalDuration = GetReaderDuration();
-
-        _instrumentSeparator = new InstrumentSeparator(reader);
-        _equalizerService = new EqualizerService(_instrumentSeparator);
-        _fftAnalyzer = new FftAnalyzer(_equalizerService);
-
-        _outputDevice = new WaveOutEvent();
-        _outputDevice.Volume = _volume;
-        _outputDevice.Init(_fftAnalyzer);
-        _outputDevice.PlaybackStopped += OnPlaybackStopped;
-
-        SubscribeToFftEvents();
-        OnPropertyChanged(nameof(InstrumentChannels));
-        OnPropertyChanged(nameof(EqualizerBands));
-        ExportCommand.RaiseCanExecuteChanged();
-
-        _outputDevice.Play();
-        PlaybackState = PlaybackState.Playing;
-        _positionTimer.Start();
-        _visualizationTimer.Start();
     }
 
     public void Play()
     {
-        if (_outputDevice is null || _audioReader is null) return;
-        _outputDevice.Play();
-        PlaybackState = PlaybackState.Playing;
-        _positionTimer.Start();
+        try
+        {
+            if (_outputDevice is null || _audioReader is null) return;
+            _outputDevice.Play();
+            PlaybackState = PlaybackState.Playing;
+            _positionTimer.Start();
+            _visualizationTimer.Start();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"播放失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     public void Pause()
     {
-        if (_outputDevice is null) return;
-        _outputDevice.Pause();
-        PlaybackState = PlaybackState.Paused;
-        _positionTimer.Stop();
-    }
-
-    public void Stop()
-    {
-        if (_outputDevice is not null)
+        try
         {
-            _outputDevice.Stop();
-            _outputDevice.PlaybackStopped -= OnPlaybackStopped;
-            _outputDevice.Dispose();
-            _outputDevice = null;
+            if (_outputDevice is null) return;
+            _outputDevice.Pause();
+            PlaybackState = PlaybackState.Paused;
+            _positionTimer.Stop();
         }
-
-        _readerDisposable?.Dispose();
-        _readerDisposable = null;
-        _audioReader = null;
-        _instrumentSeparator = null;
-        _equalizerService = null;
-        _fftAnalyzer = null;
-
-        PlaybackState = PlaybackState.Stopped;
-        _positionTimer.Stop();
-        _visualizationTimer.Stop();
-
-        CurrentTime = TimeSpan.Zero;
-        TotalDuration = TimeSpan.Zero;
-        LoopA = null;
-        LoopB = null;
-        CurrentFileName = string.Empty;
-        _currentFilePath = string.Empty;
-        WaveformData = [];
-        FftData = [];
-
-        OnPropertyChanged(nameof(InstrumentChannels));
-        OnPropertyChanged(nameof(EqualizerBands));
-        ExportCommand.RaiseCanExecuteChanged();
+        catch (Exception ex)
+        {
+            MessageBox.Show($"暂停失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     public void Resume()
     {
-        if (_outputDevice is null || PlaybackState != PlaybackState.Paused) return;
-        _outputDevice.Play();
-        PlaybackState = PlaybackState.Playing;
-        _positionTimer.Start();
+        try
+        {
+            if (_outputDevice is null || _audioReader is null)
+            {
+                if (PlaylistItems.Count > 0)
+                {
+                    int index = SelectedPlaylistIndex >= 0 ? SelectedPlaylistIndex : 0;
+                    SelectedPlaylistIndex = index;
+                    LoadAndPlay(PlaylistItems[index].FilePath);
+                }
+                return;
+            }
+
+            if (PlaybackState == PlaybackState.Paused)
+            {
+                _outputDevice.Play();
+                PlaybackState = PlaybackState.Playing;
+                _positionTimer.Start();
+                _visualizationTimer.Start();
+            }
+            else if (PlaybackState == PlaybackState.Stopped)
+            {
+                Play();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"恢复播放失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    public void Stop()
+    {
+        try
+        {
+            if (_outputDevice is not null)
+            {
+                _outputDevice.Stop();
+                _outputDevice.PlaybackStopped -= OnPlaybackStopped;
+                _outputDevice.Dispose();
+                _outputDevice = null;
+            }
+
+            _readerDisposable?.Dispose();
+            _readerDisposable = null;
+            _audioReader = null;
+            _instrumentSeparator = null;
+            _equalizerService = null;
+            _fftAnalyzer = null;
+
+            PlaybackState = PlaybackState.Stopped;
+            _positionTimer.Stop();
+            _visualizationTimer.Stop();
+
+            CurrentTime = TimeSpan.Zero;
+            TotalDuration = TimeSpan.Zero;
+            LoopA = null;
+            LoopB = null;
+            CurrentFileName = string.Empty;
+            _currentFilePath = string.Empty;
+            WaveformData = [];
+            FftData = [];
+
+            OnPropertyChanged(nameof(InstrumentChannels));
+            OnPropertyChanged(nameof(EqualizerBands));
+            ExportCommand.RaiseCanExecuteChanged();
+        }
+        catch { }
     }
 
     private void OnPositionTimerTick(object? sender, EventArgs e)
@@ -495,12 +548,21 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void OnPlaybackStopped(object? sender, StoppedEventArgs e)
     {
-        if (PlaybackState != PlaybackState.Paused)
+        Application.Current?.Dispatcher.BeginInvoke(() =>
         {
-            PlaybackState = PlaybackState.Stopped;
-            _positionTimer.Stop();
-            _visualizationTimer.Stop();
-        }
+            if (e.Exception != null)
+            {
+                MessageBox.Show($"播放错误：{e.Exception.Message}\n\n{e.Exception.StackTrace}",
+                    "播放错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
+            if (PlaybackState != PlaybackState.Paused)
+            {
+                PlaybackState = PlaybackState.Stopped;
+                _positionTimer.Stop();
+                _visualizationTimer.Stop();
+            }
+        });
     }
 
     private void ExecuteAddFiles(object? _)
